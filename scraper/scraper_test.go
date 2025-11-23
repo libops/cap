@@ -1,41 +1,30 @@
 package scraper_test
 
 import (
-	"io"
 	"log/slog"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/libops/cap/config"
 	"github.com/libops/cap/scraper"
 	"github.com/prometheus/prometheus/storage"
 )
 
-type MockScraper struct {
-	*scraper.Scraper // Embed the real Scraper to satisfy method calls if needed
-	MockConfig       config.Config
-}
-
-func NewMockScraper(t *testing.T, pattern string) *MockScraper {
+func createTestScraper(pattern string) *scraper.Scraper {
 	cfg := config.Config{
-		ProjectID: "p",
-		Location:  "l",
-		Cluster:   "c",
+		ProjectID:      "test-project",
+		Location:       "test-location",
+		Cluster:        "test-cluster",
+		CADVISORHost:   "localhost:8080",
+		ScrapeInterval: 30 * time.Second,
+		FilterPattern:  pattern,
+		FilterRegex:    regexp.MustCompile(pattern),
 	}
 
-	// Compile the regex for the mock config
-	cfg.FilterRegex = regexp.MustCompile(pattern)
+	s := scraper.NewTestScraper(cfg, slog.Default())
 
-	// Create a minimal real Scraper instance (must provide a valid io.Writer for klog)
-	s, err := scraper.NewScraper(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), io.Discard)
-	if err != nil {
-		t.Fatalf("Failed to initialize real scraper for mocking: %v", err)
-	}
-
-	return &MockScraper{
-		Scraper:    s,
-		MockConfig: cfg,
-	}
+	return s
 }
 
 // TestProcessBody_Filtering verifies that the filtering logic correctly excludes
@@ -54,13 +43,10 @@ container_cpu_usage_seconds_total{id="/kubepods/burstable/pod1/c3",name="other-a
 container_tasks_state{state="running",name="my-app"} 1.0 1678886400000
 `
 	// The regex pattern for this test is set to match all strings (.*)
-	mock := NewMockScraper(t, ".*")
+	s := createTestScraper(".*")
 
-	// Overwrite the embedded scraper's config with the mock config for this test
-	mock.Cfg = mock.MockConfig
-
-	// Call the new public method
-	batch, _, err := mock.ProcessBody([]byte(sampleBody))
+	// Call the public method
+	batch, _, err := s.ProcessBody([]byte(sampleBody))
 
 	if err != nil {
 		t.Fatalf("ProcessBody failed: %v", err)
@@ -78,8 +64,7 @@ container_tasks_state{state="running",name="my-app"} 1.0 1678886400000
 	}
 
 	// Helper to find the original labels from the Ref
-	// Call the new public method
-	labelsByRef := mock.GetLabelsByRef(storage.SeriesRef(batch[0].Ref))
+	labelsByRef := s.GetLabelsByRef(storage.SeriesRef(batch[0].Ref))
 	if labelsByRef.Get("name") != "my-app" {
 		t.Errorf("Included metric has wrong container name. Expected 'my-app', got '%s'", labelsByRef.Get("name"))
 	}
@@ -95,11 +80,10 @@ func TestProcessBody_MetricParsing(t *testing.T) {
 # TYPE container_memory_working_set_bytes gauge
 container_memory_working_set_bytes{id="/",name="test-mem",namespace="test-ns"} 1000000.0
 `
-	mock := NewMockScraper(t, ".*")
-	mock.Cfg = mock.MockConfig
+	s := createTestScraper(".*")
 
-	// Call the new public method
-	batch, metadata, err := mock.ProcessBody([]byte(sampleBody))
+	// Call the public method
+	batch, metadata, err := s.ProcessBody([]byte(sampleBody))
 
 	if err != nil {
 		t.Fatalf("ProcessBody failed: %v", err)
@@ -121,7 +105,8 @@ container_memory_working_set_bytes{id="/",name="test-mem",namespace="test-ns"} 1
 		t.Errorf("Expected value 1000000.0, got %f", batch[0].V)
 	}
 
-	labelsByRef := mock.GetLabelsByRef(storage.SeriesRef(batch[0].Ref))
+	// 3. Verify labels were stored
+	labelsByRef := s.GetLabelsByRef(storage.SeriesRef(batch[0].Ref))
 	if labelsByRef.Get("name") != "test-mem" {
 		t.Errorf("Expected label 'name'='test-mem', got '%s'", labelsByRef.Get("name"))
 	}

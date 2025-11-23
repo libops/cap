@@ -31,6 +31,14 @@ type Scraper struct {
 	labelsByRef map[storage.SeriesRef]labels.Labels
 }
 
+func NewTestScraper(cfg capConfig.Config, logger *slog.Logger) *Scraper {
+	return &Scraper{
+		Cfg:         cfg,
+		logger:      logger,
+		labelsByRef: make(map[storage.SeriesRef]labels.Labels),
+	}
+}
+
 func NewScraper(cfg capConfig.Config, logger *slog.Logger, w io.Writer) (*Scraper, error) {
 	e, err := export.New(klog.NewJSONLogger(w), prometheus.NewRegistry(), export.ExporterOpts{
 		UserAgentEnv:     "libops-cap",
@@ -63,7 +71,6 @@ func NewScraper(cfg capConfig.Config, logger *slog.Logger, w io.Writer) (*Scrape
 	return s, nil
 }
 
-// GetLabelsByRef is the callback required by the prometheus-engine exporter
 func (s *Scraper) GetLabelsByRef(ref storage.SeriesRef) labels.Labels {
 	return s.labelsByRef[ref]
 }
