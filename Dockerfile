@@ -18,3 +18,5 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 FROM ghcr.io/libops/go1.25:main@sha256:f43c9b34f888d2ac53e87c8e061554f826b8eb580863d7b21fd787b6f0378f8f
 
 COPY --from=builder /app/binary /app/binary
+
+HEALTHCHECK NONE
