@@ -3,7 +3,7 @@ module github.com/libops/cap
 go 1.25.8
 
 require (
-	github.com/GoogleCloudPlatform/prometheus-engine v0.8.0
+	github.com/GoogleCloudPlatform/prometheus-engine v0.17.2
 	github.com/go-kit/log v0.2.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/prometheus v1.99.0
@@ -70,4 +70,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/prometheus/prometheus => github.com/prometheus/prometheus v0.41.0
+replace github.com/prometheus/prometheus => github.com/prometheus/prometheus v0.312.0
