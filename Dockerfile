@@ -1,4 +1,4 @@
-FROM golang:1.26.3-alpine3.22@sha256:be93003ee861b3b91b6ebcb22678524947e0cd786c2df3f32af520006b1e54f5 AS builder
+FROM golang:1.26.4-alpine3.22@sha256:727cfc3c40be55cd1bc9a4a059406b28a059857e3be752aa9d09531e12c20c56 AS builder
 
 SHELL ["/bin/ash", "-o", "pipefail", "-ex", "-c"]
 
@@ -15,7 +15,7 @@ COPY scraper ./scraper
 RUN --mount=type=cache,target=/root/.cache/go-build \
   CGO_ENABLED=0 go build -ldflags="-s -w" -o /app/binary .
 
-FROM golang:1.26.3-alpine3.22@sha256:be93003ee861b3b91b6ebcb22678524947e0cd786c2df3f32af520006b1e54f5
+FROM golang:1.26.4-alpine3.22@sha256:727cfc3c40be55cd1bc9a4a059406b28a059857e3be752aa9d09531e12c20c56
 
 COPY --from=builder /app/binary /app/binary
 
