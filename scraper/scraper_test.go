@@ -38,6 +38,7 @@ container_cpu_usage_seconds_total{id="/",name="cap",namespace="default"} 100.0 1
 container_cpu_usage_seconds_total{id="/kubepods/burstable/pod1/c1",name="my-app",namespace="default"} 5.0 1678886400000
 container_cpu_usage_seconds_total{id="/kubepods/burstable/pod1/c2",name="libops-cache",namespace="default"} 1.0 1678886400000
 container_cpu_usage_seconds_total{id="/kubepods/burstable/pod1/c3",name="other-app",namespace="default"} 0.0 1678886400000
+container_cpu_usage_seconds_total{id="/system.slice/docker.service"} 2.0 1678886400000
 # HELP container_tasks_state The state of the container's tasks.
 # TYPE container_tasks_state gauge
 container_tasks_state{state="running",name="my-app"} 1.0 1678886400000
@@ -55,21 +56,25 @@ container_tasks_state{state="running",name="my-app"} 1.0 1678886400000
 	// Expected results:
 	// 1. "cap" container (name="cap") -> EXCLUDED
 	// 2. "my-app" container (name="my-app", metric="container_cpu_usage_seconds_total", val=5.0) -> INCLUDED
-	// 3. "libops-cache" container (name="libops-cache") -> EXCLUDED (HasPrefix)
+	// 3. "libops-cache" container (name="libops-cache") -> INCLUDED
 	// 4. "other-app" container (name="other-app", val=0.0) -> EXCLUDED (val <= 0.0)
-	// 5. "my-app" tasks_state (metric="container_tasks_state") -> EXCLUDED (Metric name check)
+	// 5. "/system.slice/docker.service" (no name label) -> EXCLUDED (not a Docker container series)
+	// 6. "my-app" tasks_state (metric="container_tasks_state") -> EXCLUDED (Metric name check)
 
-	if len(batch) != 1 {
-		t.Fatalf("Expected 1 metric sample after filtering, got %d", len(batch))
+	if len(batch) != 2 {
+		t.Fatalf("Expected 2 metric samples after filtering, got %d", len(batch))
 	}
 
-	// Helper to find the original labels from the Ref
-	labelsByRef := s.GetLabelsByRef(storage.SeriesRef(batch[0].Ref))
-	if labelsByRef.Get("name") != "my-app" {
-		t.Errorf("Included metric has wrong container name. Expected 'my-app', got '%s'", labelsByRef.Get("name"))
+	got := make(map[string]float64, len(batch))
+	for _, sample := range batch {
+		labelsByRef := s.GetLabelsByRef(storage.SeriesRef(sample.Ref))
+		got[labelsByRef.Get("name")] = sample.V
 	}
-	if batch[0].V != 5.0 {
-		t.Errorf("Included metric has wrong value. Expected 5.0, got %f", batch[0].V)
+	if got["my-app"] != 5.0 {
+		t.Errorf("Expected my-app value 5.0, got %f", got["my-app"])
+	}
+	if got["libops-cache"] != 1.0 {
+		t.Errorf("Expected libops-cache value 1.0, got %f", got["libops-cache"])
 	}
 }
 

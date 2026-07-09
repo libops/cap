@@ -20,3 +20,5 @@ FROM golang:1.26.3-alpine3.22@sha256:be93003ee861b3b91b6ebcb22678524947e0cd786c2
 COPY --from=builder /app/binary /app/binary
 
 HEALTHCHECK NONE
+
+CMD ["/app/binary"]

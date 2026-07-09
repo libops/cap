@@ -6,7 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/prometheus-engine/pkg/export"
@@ -186,13 +185,13 @@ func (s *Scraper) ProcessBody(bodyBytes []byte) ([]record.RefSample, map[string]
 
 		containerName := lset.Get("name")
 
-		isLibopsContainer := strings.HasPrefix(containerName, "libops-")
+		hasContainerName := containerName != ""
 		isTasksState := currMeta.Metric == "container_tasks_state"
 		isPositiveValue := val > 0.0
 		isCapContainer := containerName == "cap"
 		matchesRegex := s.Cfg.FilterRegex.MatchString(lset.String())
 
-		if !isLibopsContainer && !isTasksState && isPositiveValue && !isCapContainer && matchesRegex {
+		if hasContainerName && !isTasksState && isPositiveValue && !isCapContainer && matchesRegex {
 			batch = append(batch, record.RefSample{
 				Ref: chunks.HeadSeriesRef(ref),
 				V:   val,
