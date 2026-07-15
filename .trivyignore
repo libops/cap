@@ -1,0 +1,4 @@
+# Cap links the Prometheus parser/export client, not Prometheus's remote-read
+# HTTP handler where this decompression issue exists. Remove this exception
+# when prometheus-engine exposes a supported exporter on the patched line.
+CVE-2026-42154 exp:2026-10-01
