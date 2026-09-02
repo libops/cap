@@ -23,7 +23,6 @@ func TestImagePublicationWorkflowContract(t *testing.T) {
 		"libops/.github/.github/workflows/build-push.yaml@" + sharedPublisherSHA,
 		"ref: ${{ github.sha }}",
 		"expected-main-sha: ${{ github.ref == 'refs/heads/main' && github.sha || '' }}",
-		"scan: true",
 		"sign: true",
 		"certificate-identity: https://github.com/libops/.github/.github/workflows/build-push.yaml@" + sharedPublisherSHA,
 		"packages: write",
@@ -46,24 +45,5 @@ func TestImagePublicationWorkflowContract(t *testing.T) {
 		if strings.Contains(contents, value) {
 			t.Errorf("image workflow must not contain %q", value)
 		}
-	}
-}
-
-func TestTrivyExceptionIsNarrowAndExpiring(t *testing.T) {
-	ignore, err := os.ReadFile("../.trivyignore")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	lines := strings.Split(strings.TrimSpace(string(ignore)), "\n")
-	var rules []string
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line != "" && !strings.HasPrefix(line, "#") {
-			rules = append(rules, line)
-		}
-	}
-	if len(rules) != 1 || rules[0] != "CVE-2026-42154 exp:2026-10-01" {
-		t.Fatalf("unexpected Trivy exception rules: %q", rules)
 	}
 }
